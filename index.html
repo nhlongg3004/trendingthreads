@@ -1,0 +1,248 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style><title>Nhịp Threads VN</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: run picker → summary + category chart → top-3 image cards → ranked list with thumbnails → game signals. */
+:root{
+  --bg:#F3F4F8; --surface:#FFFFFF; --ink:#151729; --muted:#5D6280; --line:#DFE1EC;
+  --accent:#E8432E; --accent-soft:#FDE8E4; --game:#3B4BE0; --game-soft:#E6E9FD; --bar:#C9CDE0; --shade:rgba(10,12,30,.78);
+  --c1:#E8432E; --c2:#3B4BE0; --c3:#0E9F7E; --c4:#C2840A; --c5:#B23CC0; --c6:#1C8CC9; --c7:#D1366F; --c8:#5E7A1E;
+  --display:"Be Vietnam Pro",system-ui,sans-serif; --body:"Be Vietnam Pro",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10111C; --surface:#1A1C2B; --ink:#ECEDF6; --muted:#9A9EBA; --line:#2B2E42;
+  --accent:#FF6B55; --accent-soft:#3A1F1D; --game:#8D99FF; --game-soft:#22264A; --bar:#3A3E58; --shade:rgba(0,0,0,.8);
+  --c1:#FF6B55; --c2:#8D99FF; --c3:#3CCFA8; --c4:#F0B43C; --c5:#DB7CE6; --c6:#5BBDF0; --c7:#F06A9A; --c8:#A5C75A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10111C; --surface:#1A1C2B; --ink:#ECEDF6; --muted:#9A9EBA; --line:#2B2E42;
+  --accent:#FF6B55; --accent-soft:#3A1F1D; --game:#8D99FF; --game-soft:#22264A; --bar:#3A3E58; --shade:rgba(0,0,0,.8);
+  --c1:#FF6B55; --c2:#8D99FF; --c3:#3CCFA8; --c4:#F0B43C; --c5:#DB7CE6; --c6:#5BBDF0; --c7:#F06A9A; --c8:#A5C75A; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:960px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:24px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,5vw,36px);letter-spacing:-.02em;margin:0;line-height:1.1;text-wrap:balance}
+h1 .pulse{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-left:8px;vertical-align:middle;animation:p 2.4s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){h1 .pulse{animation:none}}
+h2{font-size:19px;margin:0;font-weight:800;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px;margin:4px 0 0;max-width:60ch}
+.label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+.runs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.run{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 12px;font:inherit;font-size:13px;cursor:pointer;text-align:left;line-height:1.3}
+.run b{display:block;font-weight:700}
+.run span{color:var(--muted);font-size:12px}
+.run[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.run[aria-pressed="true"] span{color:inherit;opacity:.75}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.overview{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+@media (max-width:720px){.overview{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel p{margin:0}
+.stats{display:flex;gap:20px;flex-wrap:wrap;margin-top:4px}
+.stat b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat span{font-size:12px;color:var(--muted)}
+.cats{display:flex;flex-direction:column;gap:7px}
+.catrow{display:grid;grid-template-columns:minmax(0,9em) 1fr auto;gap:10px;align-items:center;font-size:13px}
+.catrow .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.catrow .tr{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.catrow .fl{height:100%;border-radius:5px}
+.catrow .v{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:3.5em;text-align:right}
+
+.hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:720px){.hero{grid-template-columns:1fr}}
+.hcard{position:relative;border-radius:16px;overflow:hidden;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column}
+.hcard .media{position:relative;aspect-ratio:4/3;max-width:100%;overflow:hidden}
+.hcard .media img{width:100%;height:100%;object-fit:cover;display:block}
+.hcard .media .tile{width:100%;height:100%}
+.hcard .media::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,var(--shade),transparent 60%)}
+.hcard .over{position:absolute;left:14px;right:14px;bottom:12px;z-index:1;color:#fff;display:flex;flex-direction:column;gap:2px}
+.hcard .over .rk{font-family:var(--mono);font-size:13px;opacity:.85}
+.hcard .over h3{margin:0;font-size:17px;line-height:1.3;text-wrap:balance}
+.hcard .over .pv{font-family:var(--mono);font-size:12px;opacity:.9}
+.hcard .info{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.hcard .info p{margin:0;font-size:14px}
+
+.tile{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;letter-spacing:-.02em;text-align:center;line-height:1.1;padding:6px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+ol.trends{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.t{display:grid;grid-template-columns:30px 76px minmax(0,1fr);gap:4px 14px;padding:14px 0;border-bottom:1px solid var(--line);align-items:start}
+.rank{font-family:var(--mono);font-size:18px;color:var(--muted);line-height:1.4;font-variant-numeric:tabular-nums}
+.t.hot3 .rank{color:var(--accent)}
+.thumb{width:76px;height:76px;border-radius:12px;overflow:hidden;background:var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .tile{width:100%;height:100%;font-size:12px}
+@media (max-width:480px){.t{grid-template-columns:24px 60px minmax(0,1fr);gap:4px 10px}.thumb{width:60px;height:60px}}
+.body{min-width:0;display:flex;flex-direction:column;gap:6px}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
+.title{font-weight:700;font-size:16px;margin:0}
+.cat{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;color:#fff}
+.heat{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.04em}
+.gbadge{font-size:11px;font-weight:700;color:var(--game);letter-spacing:.04em}
+.summary{margin:0;color:var(--muted);max-width:70ch}
+.vol{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.vol .track{flex:0 1 200px;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.vol .fill{height:100%;background:var(--bar)}
+.t.hot3 .vol .fill{background:var(--accent)}
+.angle{margin:0;font-size:14px;padding:8px 12px;border-radius:8px;background:var(--accent-soft)}
+.gnote{margin:0;font-size:14px;padding:8px 12px;border-radius:8px;background:var(--game-soft)}
+.gnote strong{color:var(--game)}
+section.signals{display:flex;flex-direction:column;gap:10px}
+.sigs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.sig{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--game);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.sig b{font-size:15px}
+.sig p{margin:0;color:var(--muted);font-size:14px}
+.sig a{color:var(--game);font-size:13px;word-break:break-all}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:28px 20px;text-align:center;color:var(--muted)}
+.empty b{color:var(--ink);display:block;font-size:16px;margin-bottom:4px}
+</style></head><body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Nhịp Threads VN<span class="pulse" aria-hidden="true"></span></h1>
+      <p class="sub">Trend Threads Việt Nam, quét lúc 8:00 và 17:00 mỗi ngày. Mục nào dính tới game được đánh dấu riêng, kèm gợi ý góc content.</p>
+    </div>
+    <div class="note" id="status">Đang tải dữ liệu…</div>
+  </header>
+
+  <div>
+    <div class="label" style="margin-bottom:8px">Các lần quét</div>
+    <div class="runs" id="runs" role="group" aria-label="Chọn lần quét"></div>
+  </div>
+
+  <div id="content">
+    <div class="empty"><b>Chưa có lần quét nào</b>Agent sẽ ghi kết quả vào đây sau lần chạy đầu tiên (8:00 hoặc 17:00).</div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtN = n => n >= 1000 ? (n/1000).toFixed(n >= 10000 ? 0 : 1).replace(".0","") + "K" : String(n ?? "–");
+const PAL = ["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8"];
+const catKey = c => String(c||"Khác").split("/")[0].trim();
+const catColor = c => { const k = catKey(c); let h = 0; for (const ch of k) h = (h*31 + ch.charCodeAt(0)) >>> 0; return `var(${PAL[h % PAL.length]})`; };
+const safeImg = s => typeof s === "string" && /^data:image\/(jpeg|png|webp|gif);base64,/.test(s);
+const media = (t, cls) => safeImg(t.image)
+  ? `<img src="${t.image}" alt="" loading="lazy">`
+  : `<div class="tile ${cls||""}" style="background:${catColor(t.category)}">${esc(catKey(t.category))}</div>`;
+let runs = [], current = null, filter = "all";
+
+function renderRuns(){
+  const box = $("#runs");
+  box.innerHTML = runs.map(r => {
+    const d = new Date(r.date + "T00:00:00");
+    const day = d.toLocaleDateString("vi-VN",{weekday:"short", day:"2-digit", month:"2-digit"});
+    return `<button class="run" aria-pressed="${r.id===current}" data-id="${esc(r.id)}"><b>${esc(day)}</b><span>${r.slot==="pm"?"17:00":"08:00"} · ${(r.trends||[]).length} trend</span></button>`;
+  }).join("");
+  box.querySelectorAll(".run").forEach(b => b.onclick = () => { current = b.dataset.id; renderRuns(); renderRun(); });
+}
+
+function renderRun(){
+  const r = runs.find(x => x.id === current);
+  if(!r) return;
+  const trends = (r.trends||[]).slice().sort((a,b)=>(a.rank??99)-(b.rank??99));
+  const maxPosts = Math.max(1, ...trends.map(t => t.posts||0));
+  const total = trends.reduce((s,t)=>s+(t.posts||0),0);
+  const gameCount = trends.filter(t=>t.gameRelevant).length;
+  const at = r.runAt ? new Date(r.runAt).toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}) : "";
+
+  // category volume
+  const byCat = {};
+  trends.forEach(t => { const k = catKey(t.category); byCat[k] = (byCat[k]||0) + (t.posts||0); });
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const catMax = Math.max(1, ...cats.map(c=>c[1]));
+  const catHtml = cats.map(([k,v]) => `<div class="catrow"><span class="nm">${esc(k)}</span><div class="tr"><div class="fl" style="width:${Math.max(2,Math.round(v/catMax*100))}%;background:${catColor(k)}"></div></div><span class="v">${fmtN(v)}</span></div>`).join("");
+
+  // top 3 by posts
+  const top3 = trends.slice().sort((a,b)=>(b.posts||0)-(a.posts||0)).slice(0,3);
+  const heroHtml = top3.map(t => `
+    <article class="hcard">
+      <div class="media">${media(t)}
+        <div class="over"><span class="rk">#${t.rank} · ${esc(catKey(t.category))}</span><h3>${esc(t.title)}</h3><span class="pv">${t.posts!=null?fmtN(t.posts)+" bài":""}</span></div>
+      </div>
+      <div class="info">
+        ${t.gameRelevant&&t.gameNote?`<p class="gnote"><strong>Game:</strong> ${esc(t.gameNote)}</p>`:""}
+        ${t.contentAngle?`<p class="angle"><strong>Góc content:</strong> ${esc(t.contentAngle)}</p>`:`<p class="summary">${esc(t.summary||"")}</p>`}
+      </div>
+    </article>`).join("");
+
+  const shown = filter==="game" ? trends.filter(t=>t.gameRelevant) : trends;
+  const items = shown.map(t => `
+    <li class="t ${t.hot>=3?"hot3":""}">
+      <div class="rank">${String(t.rank??"").padStart(2,"0")}</div>
+      <div class="thumb">${media(t)}</div>
+      <div class="body">
+        <div class="top">
+          <h3 class="title">${esc(t.title)}</h3>
+          ${t.category?`<span class="cat" style="background:${catColor(t.category)}">${esc(t.category)}</span>`:""}
+          ${t.hot>=3?`<span class="heat">ĐANG NÓNG</span>`:""}
+          ${t.gameRelevant?`<span class="gbadge">GAME</span>`:""}
+        </div>
+        ${t.summary?`<p class="summary">${esc(t.summary)}</p>`:""}
+        ${t.posts!=null?`<div class="vol"><div class="track"><div class="fill" style="width:${Math.max(3,Math.round((t.posts/maxPosts)*100))}%"></div></div>${fmtN(t.posts)} bài</div>`:""}
+        ${t.gameRelevant&&t.gameNote?`<p class="gnote"><strong>Liên quan game:</strong> ${esc(t.gameNote)}</p>`:""}
+        ${t.contentAngle?`<p class="angle"><strong>Góc content:</strong> ${esc(t.contentAngle)}</p>`:""}
+      </div>
+    </li>`).join("");
+
+  const sig = (r.gameSignals||[]).map(s => `
+    <div class="sig"><b>${esc(s.title)}</b>${s.note?`<p>${esc(s.note)}</p>`:""}${s.link&&/^https:\/\//.test(s.link)?`<a href="${esc(s.link)}" target="_blank" rel="noopener">Xem bài trên Threads</a>`:""}</div>`).join("");
+
+  $("#content").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div class="overview">
+        <div class="panel">
+          <div class="label">Tóm tắt lần quét ${esc(at)}</div>
+          ${r.headline?`<p>${esc(r.headline)}</p>`:""}
+          <div class="stats">
+            <div class="stat"><b>${trends.length}</b><span>trend</span></div>
+            <div class="stat"><b>${fmtN(total)}</b><span>bài viết</span></div>
+            <div class="stat"><b style="color:var(--game)">${gameCount}</b><span>liên quan game</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="label">Số bài theo chủ đề</div>
+          <div class="cats">${catHtml}</div>
+        </div>
+      </div>
+      ${heroHtml?`<section style="display:flex;flex-direction:column;gap:12px"><h2>Nóng nhất</h2><div class="hero">${heroHtml}</div></section>`:""}
+      <section style="display:flex;flex-direction:column;gap:12px">
+        <div class="toolbar">
+          <h2>Tất cả trend</h2>
+          <div class="chips" role="group" aria-label="Lọc trend">
+            <button class="chip" data-f="all" aria-pressed="${filter==="all"}">Tất cả (${trends.length})</button>
+            <button class="chip" data-f="game" aria-pressed="${filter==="game"}">Liên quan game (${gameCount})</button>
+          </div>
+        </div>
+        ${items?`<ol class="trends">${items}</ol>`:`<div class="empty">Lần quét này không có trend nào liên quan game.</div>`}
+      </section>
+      ${sig?`<section class="signals"><h2>Tín hiệu từ cộng đồng game</h2><div class="sigs">${sig}</div></section>`:""}
+      <p class="note">Nguồn: Threads › Search › Trending now và tìm kiếm theo từ khoá game. Ảnh là thumbnail Threads hiển thị cho từng trend.</p>
+    </div>`;
+  $("#content").querySelectorAll(".chip").forEach(b => b.onclick = () => { filter = b.dataset.f; renderRun(); });
+}
+
+(async () => {
+  try {
+    const res = await fetch("data.json?t=" + Date.now(), {cache:"no-store"});
+    if(!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    runs = (data.runs||[]).slice().sort((a,b)=>String(b.runAt||"").localeCompare(String(a.runAt||"")));
+    const upd = data.updatedAt ? new Date(data.updatedAt).toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"}) : "";
+    $("#status").textContent = runs.length ? `${runs.length} lần quét · cập nhật ${upd}` : "Chưa có dữ liệu";
+    if(!runs.length) return;
+    current = runs[0].id;
+    renderRuns(); renderRun();
+  } catch(e) {
+    $("#status").textContent = "Không tải được dữ liệu. Tải lại trang để thử lại.";
+  }
+})();
+</script>
+</body></html>
